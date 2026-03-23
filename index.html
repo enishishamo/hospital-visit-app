@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>病院見学ノート</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2312b080'/%3E%3Cstop offset='100%25' stop-color='%230a6e52'/%3E%3C/linearGradient%3E%3ClinearGradient id='sh' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='rgba(255,255,255,0.18)'/%3E%3Cstop offset='100%25' stop-color='rgba(255,255,255,0)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='url(%23bg)'/%3E%3Crect width='512' height='512' rx='112' fill='url(%23sh)'/%3E%3Crect x='112' y='108' width='288' height='330' rx='22' fill='white' opacity='0.97'/%3E%3Crect x='196' y='90' width='120' height='44' rx='14' fill='%230a8a68'/%3E%3Crect x='220' y='96' width='72' height='32' rx='9' fill='white' opacity='0.9'/%3E%3Ccircle cx='256' cy='112' r='10' fill='%230a8a68'/%3E%3Crect x='228' y='172' width='56' height='18' rx='9' fill='%230f8a6c'/%3E%3Crect x='247' y='153' width='18' height='56' rx='9' fill='%230f8a6c'/%3E%3Ctext x='142' y='298' font-size='52' fill='%23f0c040' font-family='sans-serif'%3E%E2%98%85%3C/text%3E%3Ctext x='202' y='298' font-size='52' fill='%23f0c040' font-family='sans-serif'%3E%E2%98%85%3C/text%3E%3Ctext x='262' y='298' font-size='52' fill='%23f0c040' font-family='sans-serif'%3E%E2%98%85%3C/text%3E%3Ctext x='322' y='298' font-size='52' fill='%23f0c040' font-family='sans-serif'%3E%E2%98%85%3C/text%3E%3Crect x='142' y='320' width='228' height='12' rx='6' fill='%23e0ede8'/%3E%3Crect x='142' y='348' width='180' height='12' rx='6' fill='%23e0ede8'/%3E%3Crect x='142' y='376' width='204' height='12' rx='6' fill='%23e0ede8'/%3E%3C/svg%3E"/>
+  <link rel="apple-touch-icon" href="icon.svg"/>
+  <meta name="theme-color" content="#0f8a6c"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif; background: #f0f6f3; }
+    input, textarea, select, button { font-family: inherit; }
+    textarea { resize: vertical; }
+    ::selection { background: #0f8a6c33; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid #0f8a6c; outline-offset: -1px; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+    }
+    /* スクロールバー */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c8d8d0; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    /* ===== 定数 ===== */
+    const CATEGORIES = [
+      { key: "residentAtmosphere", label: "研修医の雰囲気", icon: "🩺" },
+      { key: "mentoring",          label: "指導体制",       icon: "👨‍⚕️" },
+      { key: "emergency",          label: "救急の充実度",   icon: "🚑" },
+      { key: "worklife",           label: "労働環境",       icon: "⏰" },
+      { key: "education",          label: "教育・勉強",     icon: "📚" },
+      { key: "compensation",       label: "待遇・給料",     icon: "💰" },
+      { key: "living",             label: "生活環境",       icon: "🏠" },
+      { key: "accessibility",      label: "アクセス",       icon: "🚃" },
+    ];
+
+    const CHECKLIST_ITEMS = [
+      { key: "residentRoom",      label: "研修医室の教科書（量・やり込み度）" },
+      { key: "staffFace",         label: "コメディカルの顔（イキイキしているか）" },
+      { key: "cafeteria",         label: "食堂・売店・カフェの有無" },
+      { key: "dormitory",         label: "寮の確認（共同か個室か）" },
+      { key: "surroundings",      label: "病院周辺の環境（飲食店など）" },
+      { key: "residentTiredness", label: "研修医の疲労度（顔色・表情）" },
+      { key: "phsFrequency",      label: "PHSの鳴る頻度（忙しさの指標）" },
+      { key: "cliques",           label: "派閥の有無" },
+      { key: "secondYear",        label: "2年目→1年目へのサポート体制" },
+    ];
+
+
+    const HOSPITAL_NAMES = [
+      // ── 大学病院 ──
+      "北海道大学病院","札幌医科大学附属病院","旭川医科大学病院",
+      "東北大学病院","弘前大学医学部附属病院","秋田大学医学部附属病院",
+      "山形大学医学部附属病院","岩手医科大学附属病院","福島県立医科大学附属病院",
+      "東京大学医学部附属病院","慶應義塾大学病院","順天堂大学医学部附属順天堂医院",
+      "日本医科大学付属病院","東京医科大学病院","東京慈恵会医科大学附属病院",
+      "昭和大学病院","東邦大学医療センター大森病院","東邦大学医療センター大橋病院",
+      "東邦大学医療センター佐倉病院","帝京大学医学部附属病院","杏林大学医学部付属病院",
+      "東京女子医科大学病院","日本大学医学部附属板橋病院","聖マリアンナ医科大学病院",
+      "北里大学病院","東海大学医学部付属病院","横浜市立大学附属病院",
+      "千葉大学医学部附属病院","筑波大学附属病院","群馬大学医学部附属病院",
+      "埼玉医科大学病院","埼玉医科大学総合医療センター","獨協医科大学病院",
+      "自治医科大学附属病院","栃木医療センター",
+      "新潟大学医歯学総合病院","富山大学附属病院","金沢大学附属病院",
+      "金沢医科大学病院","福井大学医学部附属病院","信州大学医学部附属病院",
+      "山梨大学医学部附属病院","浜松医科大学医学部附属病院","静岡県立総合病院",
+      "名古屋大学医学部附属病院","名古屋市立大学病院","愛知医科大学病院",
+      "藤田医科大学病院","三重大学医学部附属病院","岐阜大学医学部附属病院",
+      "京都大学医学部附属病院","大阪大学医学部附属病院","神戸大学医学部附属病院",
+      "大阪市立大学医学部附属病院","大阪府立病院","関西医科大学附属病院",
+      "近畿大学病院","兵庫医科大学病院","奈良県立医科大学附属病院",
+      "和歌山県立医科大学附属病院","滋賀医科大学医学部附属病院",
+      "鳥取大学医学部附属病院","島根大学医学部附属病院","岡山大学病院",
+      "川崎医科大学附属病院","広島大学病院","山口大学医学部附属病院",
+      "徳島大学病院","香川大学医学部附属病院","愛媛大学医学部附属病院",
+      "高知大学医学部附属病院","九州大学病院","福岡大学病院",
+      "産業医科大学病院","久留米大学病院","佐賀大学医学部附属病院",
+      "長崎大学病院","熊本大学病院","大分大学医学部附属病院",
+      "宮崎大学医学部附属病院","鹿児島大学病院","琉球大学病院",
+
+      // ── 赤十字病院 ──
+      "札幌赤十字病院","釧路赤十字病院","旭川赤十字病院",
+      "仙台赤十字病院","秋田赤十字病院","福島赤十字病院",
+      "水戸赤十字病院","前橋赤十字病院","さいたま赤十字病院",
+      "成田赤十字病院","東京都赤十字血液センター","日本赤十字社医療センター",
+      "武蔵野赤十字病院","横浜市立みなと赤十字病院","富山赤十字病院",
+      "金沢赤十字病院","福井赤十字病院","長野赤十字病院",
+      "名古屋第一赤十字病院","名古屋第二赤十字病院","岐阜赤十字病院",
+      "静岡赤十字病院","浜松赤十字病院","京都第一赤十字病院",
+      "京都第二赤十字病院","大阪赤十字病院","大阪府赤十字血液センター",
+      "神戸赤十字病院","姫路赤十字病院","奈良赤十字病院",
+      "和歌山赤十字病院","岡山赤十字病院","広島赤十字・原爆病院",
+      "高松赤十字病院","松山赤十字病院","高知赤十字病院",
+      "福岡赤十字病院","長崎原爆病院","熊本赤十字病院",
+      "大分赤十字病院","鹿児島赤十字病院",
+
+      // ── 済生会病院 ──
+      "済生会札幌病院","済生会山形済生病院","済生会宇都宮病院",
+      "済生会川口総合病院","済生会横浜市東部病院","済生会横浜市南部病院",
+      "済生会富山病院","済生会金沢病院","済生会福井病院",
+      "済生会静岡病院","済生会松阪総合病院","済生会京都府病院",
+      "済生会大阪病院","済生会千里病院","済生会泉尾病院",
+      "済生会奈良病院","済生会和歌山病院","済生会広島病院",
+      "済生会松山病院","済生会福岡病院","済生会熊本病院",
+
+      // ── 徳洲会グループ ──
+      "札幌徳洲会病院","仙台徳洲会病院","千葉徳洲会病院",
+      "湘南鎌倉総合病院","湘南藤沢徳洲会病院","東京西徳洲会病院",
+      "名古屋徳洲会総合病院","大阪徳洲会病院","大和徳洲会病院",
+      "岸和田徳洲会病院","宇治徳洲会病院","神戸徳洲会病院",
+      "八尾徳洲会総合病院","四日市羽津医療センター",
+      "福岡徳洲会病院","熊本中央病院","鹿児島徳洲会病院",
+      "中部徳洲会病院","南部徳洲会病院","湘南厚木病院",
+
+      // ── 国立病院機構 ──
+      "国立病院機構北海道がんセンター","国立病院機構仙台医療センター",
+      "国立病院機構水戸医療センター","国立病院機構千葉医療センター",
+      "国立病院機構東京医療センター","国立病院機構横浜医療センター",
+      "国立病院機構名古屋医療センター","国立病院機構大阪医療センター",
+      "国立病院機構京都医療センター","国立病院機構神戸医療センター",
+      "国立病院機構広島西医療センター","国立病院機構四国がんセンター",
+      "国立病院機構九州医療センター","国立病院機構熊本医療センター",
+      "国立病院機構鹿児島医療センター",
+
+      // ── 市中病院・公立病院 ──
+      "札幌市立病院","函館市立病院","青森市民病院",
+      "仙台市立病院","秋田市立病院","福島市立病院",
+      "水戸市立病院","宇都宮市立病院","前橋市立前橋病院",
+      "さいたま市立病院","川越市立川越病院","千葉市立海浜病院",
+      "東京都立多摩総合医療センター","東京都立墨東病院","東京都立広尾病院",
+      "東京都立大塚病院","横浜市立市民病院","川崎市立川崎病院",
+      "相模原市立病院","新潟市民病院","金沢市立病院",
+      "静岡市立清水病院","浜松市民病院","名古屋市立東部医療センター",
+      "名古屋市立西部医療センター","名古屋市立中央病院",
+      "京都市立病院","大阪市立総合医療センター","大阪市立住吉市民病院",
+      "神戸市立医療センター中央市民病院","神戸市立医療センター西市民病院",
+      "姫路市立城郷病院","広島市立安佐市民病院","広島市立広島市民病院",
+      "北九州市立医療センター","福岡市立病院","熊本市民病院",
+
+      // ── 県立・都道府県立病院 ──
+      "北海道立病院","青森県立中央病院","岩手県立中央病院",
+      "宮城県立こども病院","山形県立中央病院","福島県立医科大学附属病院",
+      "茨城県立中央病院","栃木県立がんセンター","群馬県立がんセンター",
+      "千葉県立病院","神奈川県立こども医療センター","神奈川県立がんセンター",
+      "新潟県立がんセンター新潟病院","富山県立中央病院",
+      "石川県立中央病院","福井県立病院","山梨県立中央病院",
+      "長野県立こども病院","岐阜県立多治見病院",
+      "静岡県立総合病院","静岡県立こども病院",
+      "三重県立総合医療センター","滋賀県立成人病センター",
+      "京都府立医科大学附属病院","大阪府立急性期・総合医療センター",
+      "大阪府立成人病センター","兵庫県立尼崎総合医療センター",
+      "兵庫県立がんセンター","奈良県立医科大学附属病院",
+      "和歌山県立医科大学附属病院","鳥取県立中央病院",
+      "島根県立中央病院","岡山県立がんセンター","広島県立病院",
+      "山口県立総合医療センター","徳島県立中央病院",
+      "香川県立中央病院","愛媛県立中央病院","高知県立幡多けんみん病院",
+      "福岡県立病院","佐賀県医療センター好生館","長崎県立病院",
+      "熊本県立病院","大分県立病院","宮崎県立宮崎病院",
+      "鹿児島県立姶良病院","沖縄県立中部病院","沖縄県立南部医療センター",
+
+      // ── マッチング人気病院（北海道・東北） ──
+      "手稲渓仁会病院","旭川厚生病院","旭川赤十字病院",
+      "KKR札幌医療センター","市立函館病院","苫小牧市立病院",
+      "釧路市立病院","帯広厚生病院","北海道医療センター",
+      "市立旭川病院","北見赤十字病院",
+      "岩手県立磐井病院","岩手県立中央病院","気仙沼市立病院",
+      "仙台オープン病院","東北公済病院","石巻赤十字病院",
+      "秋田赤十字病院","山形県立救命救急センター","いわき市医療センター",
+
+      // ── マッチング人気病院（関東） ──
+      "国保旭中央病院","亀田総合病院","東京ベイ・浦安市川医療センター",
+      "船橋市立医療センター","千葉西総合病院","新東京病院",
+      "国際医療福祉大学市川病院","東千葉メディカルセンター",
+      "横浜市立大学附属市民総合医療センター","藤沢市民病院",
+      "平塚市民病院","小田原市立病院","茅ヶ崎市立病院",
+      "横須賀市立うわまち病院","大和市立病院",
+      "草加市立病院","春日部市立医療センター","独協医科大学埼玉医療センター",
+      "埼玉石心会病院","深谷赤十字病院","太田記念病院",
+      "桐生厚生総合病院","高崎総合医療センター","公立富岡総合病院",
+      "足利赤十字病院","那須赤十字病院","茨城県立中央病院",
+      "水戸協同病院","筑波メディカルセンター病院",
+      "昭和大学江東豊洲病院","東京品川病院","大森赤十字病院",
+
+      // ── マッチング人気病院（中部・信越） ──
+      "相澤病院","長野市民病院","信州上田医療センター",
+      "松本市立病院","長野赤十字病院","諏訪赤十字病院",
+      "飯田市立病院","伊那中央病院",
+      "大垣市民病院","岐阜県総合医療センター","木沢記念病院",
+      "高山赤十字病院","多治見市民病院",
+      "市立四日市病院","伊勢赤十字病院","三重中央医療センター",
+      "松阪市民病院",
+      "富山市立富山市民病院","高岡市民病院",
+      "福井県済生会病院","福井赤十字病院",
+      "山梨赤十字病院","甲府市立甲府病院",
+      "磐田市立総合病院","浜松医療センター","静岡済生会病院",
+      "富士市立中央病院","焼津市立総合病院",
+
+      // ── マッチング人気病院（近畿） ──
+      "天理よろづ相談所病院","洛和会音羽病院","洛和会丸太町病院",
+      "京都第一赤十字病院","京都第二赤十字病院","京都民医連中央病院",
+      "市立奈良病院","南奈良総合医療センター",
+      "市立大津市民病院","滋賀県立総合病院","草津総合病院",
+      "大阪急性期・総合医療センター","大阪国際がんセンター",
+      "市立豊中病院","市立吹田市民病院","市立池田病院",
+      "市立東大阪医療センター","市立泉佐野病院",
+      "岸和田市民病院","泉大津市立病院",
+      "神戸市立西神戸医療センター","宝塚市立病院",
+      "兵庫県立尼崎総合医療センター","姫路赤十字病院",
+      "市立芦屋病院","加古川中央市民病院",
+      "和歌山生協病院",
+
+      // ── マッチング人気病院（中国・四国） ──
+      "倉敷中央病院","岡山医療センター","津山中央病院",
+      "土谷総合病院","広島共立病院","中国中央病院",
+      "山口赤十字病院","下関市立市民病院",
+      "松山市民病院","愛媛生協病院",
+      "高知医療センター","幡多けんみん病院",
+      "鳥取市立病院","米子医療センター",
+
+      // ── マッチング人気病院（九州・沖縄） ──
+      "飯塚病院","小倉記念病院","北九州市立八幡病院",
+      "産業医科大学病院","聖マリア病院","久留米総合病院",
+      "佐賀県医療センター好生館","長崎みなとメディカルセンター",
+      "熊本赤十字病院","熊本中央病院","熊本総合病院",
+      "大分県立病院","大分中村病院",
+      "宮崎市郡医師会病院","宮崎県立延岡病院",
+      "鹿児島市立病院","鹿児島生協病院",
+      "那覇市立病院","中頭病院","浦添総合病院",
+      "沖縄協同病院","豊見城中央病院",
+
+      // ── その他有名病院 ──
+      "虎の門病院","聖路加国際病院","国際医療福祉大学三田病院",
+      "NTT東日本関東病院","JCHO東京山手メディカルセンター",
+      "JCHO東京新宿メディカルセンター","JCHO東京城東病院",
+      "東京臨海病院","東京北医療センター","河北総合病院",
+      "日野市立病院","町田市民病院","八王子医療センター",
+      "JR東京総合病院","東京都保健医療公社豊島病院",
+      "江東病院","荏原病院","大久保病院","松沢病院",
+      "関東労災病院","横浜労災病院","神奈川労災病院",
+      "千葉労災病院","東京労災病院","大阪労災病院",
+      "独立行政法人労働者健康安全機構",
+      "防衛医科大学校病院","自衛隊中央病院","海上自衛隊横須賀病院",
+      "刑事施設医療センター","法務省矯正局",
+      "国立がん研究センター中央病院","国立がん研究センター東病院",
+      "国立国際医療研究センター病院","国立精神・神経医療研究センター病院",
+      "国立成育医療研究センター","国立循環器病研究センター",
+      "国立病院機構大阪南医療センター",
+      "大阪国際がんセンター","神戸市立西神戸医療センター",
+      "兵庫医療大学附属病院","関西電力病院","りんくう総合医療センター",
+      "府中病院","星ヶ丘医療センター","市立東大阪医療センター",
+      "市立池田病院","高槻病院","吹田市民病院",
+    ];
+
+    const DEFAULT_WEIGHTS = Object.fromEntries(CATEGORIES.map(c => [c.key, 2])); // 0=無視 1=低 2=普通 3=高 4=最重要
+    const WEIGHT_LABELS = ["無視","低","普通","高","最重要"];
+    const WEIGHT_COLORS = ["#d1ddd8","#a8c8b8","#52b89a","#0f8a6c","#085c48"];
+
+    const emptyRatings   = () => Object.fromEntries(CATEGORIES.map(c => [c.key, 0]));
+    const emptyChecklist = () => Object.fromEntries(CHECKLIST_ITEMS.map(c => [c.key, false]));
+
+    const EMPTY_FORM = {
+      status: "visited", // "visited" | "interested"
+      rank: 0,
+      thankYouSent: false,
+      actions: { thankYou: false, pastExam: false, revisitBooked: false },
+      wantToRevisit: false,
+      name: "", date: new Date().toISOString().split("T")[0],
+      department: "", chiefDoctor: "", thankYouDoctors: "",
+      salary: "", nightShifts: "", patientCount: "",
+      ratings: emptyRatings(), checklist: emptyChecklist(),
+      askMemo: "", goodPoints: "", badPoints: "", memo: "",
+      photos: [],
+    };
+
+    /* ===== StarRating ===== */
+    function StarRating({ value, onChange, readonly, small }) {
+      const [hover, setHover] = useState(0);
+      const size = small ? 13 : (readonly ? 16 : 22);
+      return (
+        <div style={{ display: "flex", gap: 1 }}>
+          {[1,2,3,4,5].map(s => (
+            <button key={s} type="button"
+              onClick={() => !readonly && onChange(s)}
+              onMouseEnter={() => !readonly && setHover(s)}
+              onMouseLeave={() => setHover(0)}
+              style={{
+                background: "none", border: "none",
+                cursor: readonly ? "default" : "pointer",
+                fontSize: size, padding: 0, lineHeight: 1,
+                color: s <= (hover || value) ? "#0f8a6c" : "#d1ddd8",
+                transition: "color .12s, transform .12s",
+                transform: !readonly && s <= hover ? "scale(1.25)" : "scale(1)",
+              }}
+            >★</button>
+          ))}
+        </div>
+      );
+    }
+
+    /* ===== RadarChart ===== */
+    function RadarChart({ ratings, size = 220 }) {
+      const cx = size/2, cy = size/2, r = size * 0.33;
+      const n = CATEGORIES.length;
+      const angle = i => Math.PI*2*i/n - Math.PI/2;
+      const pt = (i, val) => ({
+        x: cx + r*(val/5)*Math.cos(angle(i)),
+        y: cy + r*(val/5)*Math.sin(angle(i)),
+      });
+      const values     = CATEGORIES.map(c => ratings[c.key] || 0);
+      const dataPoints = values.map((v,i) => pt(i,v));
+      return (
+        <svg viewBox={`0 0 ${size} ${size}`} style={{ width:"100%", maxWidth: size }}>
+          {[1,2,3,4,5].map(lv => (
+            <polygon key={lv}
+              points={CATEGORIES.map((_,i) => { const p=pt(i,lv); return `${p.x},${p.y}`; }).join(" ")}
+              fill="none" stroke="#d1ddd8"
+              strokeWidth={lv===5 ? 1.5 : 0.5} opacity={0.7}
+            />
+          ))}
+          {CATEGORIES.map((_,i) => {
+            const p = pt(i,5);
+            return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#d1ddd8" strokeWidth={0.5}/>;
+          })}
+          <polygon
+            points={dataPoints.map(p=>`${p.x},${p.y}`).join(" ")}
+            fill="rgba(15,138,108,0.18)" stroke="#0f8a6c" strokeWidth={2}
+          />
+          {dataPoints.map((p,i) => <circle key={i} cx={p.x} cy={p.y} r={3} fill="#0f8a6c"/>)}
+          {CATEGORIES.map((c,i) => {
+            const lr = r + 26;
+            return (
+              <text key={i}
+                x={cx + lr*Math.cos(angle(i))}
+                y={cy + lr*Math.sin(angle(i))}
+                textAnchor="middle" dominantBaseline="central"
+                style={{ fontSize: 9, fill: "#4a6358", fontFamily:"'Zen Kaku Gothic New',sans-serif" }}
+              >{c.icon} {c.label}</text>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    /* ===== HospitalCard ===== */
+    function HospitalCard({ hospital, onClick, animDelay, weights, hasCustomWeights }) {
+      const isInterested = hospital.status === "interested";
+      const totalW = CATEGORIES.reduce((s,c) => s + (weights[c.key] > 0 ? weights[c.key] : 0), 0);
+      const avg = totalW > 0
+        ? CATEGORIES.reduce((s,c) => s + (hospital.ratings[c.key]||0)*(weights[c.key]>0?weights[c.key]:0), 0) / totalW
+        : 0;
+      const bgColor = avg >= 4
+        ? "linear-gradient(135deg,#0f8a6c,#12a67e)"
+        : avg >= 3 ? "linear-gradient(135deg,#2d9e80,#52b89a)"
+        : "linear-gradient(135deg,#7a9489,#96afa5)";
+      return (
+        <div onClick={onClick}
+          style={{
+            background: isInterested ? "#fafdf9" : hospital.wantToRevisit ? "#f0faf6" : "#fff",
+            borderRadius:16, padding:"18px 20px", cursor:"pointer",
+            border: isInterested ? "1.5px dashed #a8c8b8" : hospital.wantToRevisit ? "1.5px solid #0f8a6c" : "1px solid #e4ece8",
+            boxShadow:"0 1px 4px rgba(15,60,40,0.05)",
+            transition:"all .22s cubic-bezier(.4,0,.2,1)",
+            animation: `fadeUp .35s ease ${animDelay||0}s both`,
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(15,60,40,0.1)";}}
+          onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 4px rgba(15,60,40,0.05)";}}
+        >
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#1a2e24" }}>{hospital.name}</div>
+                {isInterested && (
+                  <span style={{ fontSize:10, fontWeight:700, color:"#7a9489", background:"#eef5f1", padding:"2px 7px", borderRadius:5, whiteSpace:"nowrap" }}>👀 気になる</span>
+                )}
+                {!isInterested && hospital.visitCount && (
+                  <span style={{ fontSize:10, fontWeight:700, color:"#0f8a6c", background:"#eef5f1", padding:"2px 7px", borderRadius:5, whiteSpace:"nowrap" }}>{hospital.visitCount}</span>
+                )}
+                {!isInterested && hospital.visitPurpose && (
+                  <span style={{ fontSize:10, fontWeight:600, color:"#7a9489", background:"#f5f8f6", padding:"2px 7px", borderRadius:5, whiteSpace:"nowrap" }}>{hospital.visitPurpose}</span>
+                )}
+              </div>
+              <div style={{ fontSize:12, color:"#7a9489", marginTop:2 }}>
+                {hospital.department}{hospital.department&&" · "}
+                {isInterested ? "見学日未定" : hospital.date}
+              </div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0 }}>
+              {isInterested ? (
+                <div style={{ background:"linear-gradient(135deg,#c8d8d0,#a8b8b0)", color:"#fff", borderRadius:10, padding:"5px 10px", fontSize:11, fontWeight:700 }}>未見学</div>
+              ) : (
+                <div style={{ background:bgColor, color:"#fff", borderRadius:10, padding:"5px 11px", fontSize:14, fontWeight:800, minWidth:40, textAlign:"center", position:"relative" }}>
+                  {avg.toFixed(1)}
+                  {hasCustomWeights && <span style={{ fontSize:9, position:"absolute", top:-4, right:-4, background:"#f0c040", borderRadius:"50%", width:14, height:14, display:"flex", alignItems:"center", justifyContent:"center" }}>⚖</span>}
+                </div>
+              )}
+              {hospital.rank > 0 && (
+                <div style={{
+                  fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, whiteSpace:"nowrap",
+                  background: hospital.rank===1 ? "linear-gradient(135deg,#f0c040,#e8a820)"
+                    : hospital.rank<=3 ? "linear-gradient(135deg,#0f8a6c,#12a67e)"
+                    : "#eef5f1",
+                  color: hospital.rank<=3 ? "#fff" : "#0f8a6c",
+                }}>第{hospital.rank}志望</div>
+              )}
+              {hospital.wantToRevisit && (
+                <div style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", background:"#d6f0e8", padding:"2px 8px", borderRadius:5, whiteSpace:"nowrap" }}>🔁 再訪予定</div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ===== EmailModal ===== */
+    /* ===== WeightModal ===== */
+    function WeightModal({ weights, onChange, onClose }) {
+      const [local, setLocal] = useState({...weights});
+      const isDefault = CATEGORIES.every(c => local[c.key] === 2);
+      return (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(10,30,20,0.5)", zIndex:300,
+          display:"flex", alignItems:"flex-end", justifyContent:"center",
+          backdropFilter:"blur(5px)",
+        }} onClick={onClose}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:"#fff", borderRadius:"22px 22px 0 0", width:"100%", maxWidth:520,
+            maxHeight:"88vh", overflowY:"auto", padding:"22px 20px 36px",
+            animation:"fadeUp .3s ease",
+          }}>
+            <div style={{ width:36, height:4, borderRadius:2, background:"#d1ddd8", margin:"0 auto 16px" }}/>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <div style={{ fontSize:16, fontWeight:900, color:"#1a2e24" }}>⚖️ 評価の重み設定</div>
+              {!isDefault && (
+                <button onClick={()=>setLocal({...DEFAULT_WEIGHTS})}
+                  style={{ fontSize:12, color:"#7a9489", background:"none", border:"1px solid #d1ddd8", borderRadius:7, padding:"4px 10px", cursor:"pointer" }}
+                >リセット</button>
+              )}
+            </div>
+            <div style={{ fontSize:12, color:"#7a9489", marginBottom:18 }}>
+              自分にとって大切な項目の重みを上げると、総合スコアに反映されます
+            </div>
+            {CATEGORIES.map(c => (
+              <div key={c.key} style={{ marginBottom:18 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontSize:14, fontWeight:600 }}>{c.icon} {c.label}</span>
+                  <span style={{
+                    fontSize:12, fontWeight:700, padding:"2px 10px", borderRadius:6,
+                    background: WEIGHT_COLORS[local[c.key]] + "22",
+                    color: WEIGHT_COLORS[local[c.key]],
+                  }}>{WEIGHT_LABELS[local[c.key]]}</span>
+                </div>
+                <div style={{ display:"flex", gap:6 }}>
+                  {WEIGHT_LABELS.map((label, i) => (
+                    <button key={i} type="button"
+                      onClick={()=>setLocal({...local, [c.key]: i})}
+                      style={{
+                        flex:1, padding:"8px 2px", borderRadius:8, fontSize:11, fontWeight:700,
+                        cursor:"pointer", transition:"all .13s",
+                        border: local[c.key]===i ? `2px solid ${WEIGHT_COLORS[i]}` : "2px solid #e4ece8",
+                        background: local[c.key]===i ? WEIGHT_COLORS[i]+"22" : "#fff",
+                        color: local[c.key]===i ? WEIGHT_COLORS[i] : "#a8b8b0",
+                      }}
+                    >{label}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button onClick={()=>{ onChange(local); onClose(); }}
+              style={{
+                width:"100%", padding:"14px", borderRadius:13, border:"none",
+                background:"linear-gradient(135deg,#0f8a6c,#12a67e)",
+                color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer",
+                boxShadow:"0 4px 16px rgba(15,138,108,0.25)",
+              }}
+            >この設定で反映する</button>
+          </div>
+        </div>
+      );
+    }
+
+    function EmailModal({ hospital, onClose }) {
+      const [copied, setCopied] = useState(false);
+      const template =
+`件名：病院見学のお礼
+
+${hospital.name} ${hospital.department || ""}
+${hospital.thankYouDoctors ? hospital.thankYouDoctors + " 先生" : "ご担当者"} 様
+
+お世話になっております。
+〇〇大学医学部◯年の〇〇〇〇です。
+
+本日はお忙しい中、私のためにお時間を割いてくださり、誠にありがとうございました。
+
+1日という短い時間でしたが、${hospital.department || "貴科"}の先生や研修医の先生に直接お話を聞くことができ、大変有意義な時間を過ごすことができました。
+
+また、熱心に働くスタッフの皆様のお姿が非常に印象的であり、貴院での初期研修への気持ちがますます高まっているところです。
+
+今後、より一層、学業および病院実習に励んでいく所存です。
+まずは取り急ぎ、御礼申し上げます。
+
+＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊
+〇〇大学医学部◯年　〇〇　〇〇
+E-mail : 〇〇〇〇@gmail.com
+TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
+＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊`;
+
+      const copy = () => {
+        navigator.clipboard.writeText(template).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        }).catch(() => {
+          // フォールバック
+          const ta = document.createElement("textarea");
+          ta.value = template;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        });
+      };
+
+      return (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(10,30,20,0.5)", zIndex:300,
+          display:"flex", alignItems:"flex-end", justifyContent:"center",
+          backdropFilter:"blur(5px)",
+        }} onClick={onClose}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:"#fff", borderRadius:"22px 22px 0 0", width:"100%", maxWidth:520,
+            maxHeight:"88vh", overflowY:"auto", padding:"22px 20px 32px",
+            animation:"fadeUp .3s ease",
+          }}>
+            <div style={{ width:36, height:4, borderRadius:2, background:"#d1ddd8", margin:"0 auto 16px" }}/>
+            <div style={{ fontSize:16, fontWeight:900, color:"#1a2e24", marginBottom:12 }}>📧 お礼メールテンプレート</div>
+            <div style={{ fontSize:12, color:"#7a9489", marginBottom:10 }}>〇〇の部分をご自身の情報に書き換えてください</div>
+            <textarea readOnly value={template} rows={18}
+              style={{
+                width:"100%", padding:"12px 14px", borderRadius:10,
+                border:"1px solid #d1ddd8", background:"#f5f8f6",
+                fontSize:13, color:"#1a2e24", lineHeight:1.7, resize:"none",
+              }}
+            />
+            <button onClick={copy} style={{
+              width:"100%", marginTop:12, padding:"14px", borderRadius:12, border:"none",
+              background: copied ? "#52b89a" : "linear-gradient(135deg,#0f8a6c,#12a67e)",
+              color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer",
+              transition:"background .3s",
+            }}>
+              {copied ? "✅ コピーしました！" : "📋 クリップボードにコピー"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ===== Main App ===== */
+    function App() {
+      const [hospitals, setHospitals] = useState(() => {
+        try { return JSON.parse(localStorage.getItem("byouin_v2") || "[]"); }
+        catch { return []; }
+      });
+      const [view, setView]             = useState("list");
+      const [form, setForm]             = useState({...EMPTY_FORM, ratings:emptyRatings(), checklist:emptyChecklist(), photos:[]});
+      const [selected, setSelected]     = useState(null);
+      const [editId, setEditId]         = useState(null);
+      const [searchQ, setSearchQ]       = useState("");
+      const [sortBy, setSortBy]         = useState("date");
+      const [confirmDel, setConfirmDel] = useState(null);
+      const [showEmail, setShowEmail]   = useState(false);
+      const [showWeights, setShowWeights] = useState(false);
+      const [settingsSection, setSettingsSection] = useState("weights"); // "weights"|"data"|"checklist"
+      const [compareSelected, setCompareSelected] = useState([]);
+      const [packingChecks, setPackingChecks] = useState({});
+      const [weights, setWeights] = useState(() => {
+        try { return JSON.parse(localStorage.getItem("byouin_weights") || "null") || {...DEFAULT_WEIGHTS}; }
+        catch { return {...DEFAULT_WEIGHTS}; }
+      });
+
+      useEffect(() => {
+        try { localStorage.setItem("byouin_weights", JSON.stringify(weights)); } catch {}
+      }, [weights]);
+
+      const hasCustomWeights = CATEGORIES.some(c => weights[c.key] !== 2);
+
+      useEffect(() => {
+        try { localStorage.setItem("byouin_v2", JSON.stringify(hospitals)); } catch {}
+      }, [hospitals]);
+
+      const avgRating = h => {
+        const totalWeight = CATEGORIES.reduce((s,c) => s + (weights[c.key] > 0 ? weights[c.key] : 0), 0);
+        if (totalWeight === 0) return 0;
+        const weighted = CATEGORIES.reduce((s,c) => s + (h.ratings[c.key]||0) * (weights[c.key] > 0 ? weights[c.key] : 0), 0);
+        return weighted / totalWeight;
+      };
+
+      const filtered = hospitals
+        .filter(h => {
+          const q = searchQ.toLowerCase();
+          return (!q || h.name.toLowerCase().includes(q) || (h.department||"").toLowerCase().includes(q))
+;
+        })
+        .sort((a,b) => {
+          if (sortBy==="date")   return b.date.localeCompare(a.date);
+          if (sortBy==="rating") return avgRating(b) - avgRating(a);
+          return a.name.localeCompare(b.name);
+        });
+
+
+      const saveHospital = () => {
+        if (!form.name.trim()) return;
+        if (editId) {
+          setHospitals(prev => prev.map(h => h.id===editId ? {...form, id:editId} : h));
+        } else {
+          setHospitals(prev => [...prev, {...form, id: Date.now().toString()}]);
+        }
+        resetForm();
+        setView("list");
+      };
+
+      const exportData = () => {
+        const json = JSON.stringify(hospitals, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `病院見学ノート_${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const importData = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (Array.isArray(data)) {
+              setHospitals(prev => {
+                const existingIds = new Set(prev.map(h => h.id));
+                const newItems = data.filter(h => !existingIds.has(h.id));
+                return [...prev, ...newItems];
+              });
+              alert(`${data.length}件をインポートしました`);
+            }
+          } catch { alert("ファイルの読み込みに失敗しました"); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      };
+
+      const resetForm = () => {
+        setForm({...EMPTY_FORM, ratings:emptyRatings(), checklist:emptyChecklist(), photos:[], date:new Date().toISOString().split("T")[0]});
+        setEditId(null);
+      };
+
+      const startEdit = h => {
+        setForm({
+          ...EMPTY_FORM, ...h,
+          ratings:   {...emptyRatings(),   ...h.ratings},
+          checklist: {...emptyChecklist(), ...(h.checklist||{})},
+          photos:    h.photos || [],
+        });
+        setEditId(h.id);
+        setSelected(null);
+        setView("form");
+      };
+
+      const deleteHospital = id => {
+        setHospitals(prev => prev.filter(h => h.id!==id));
+        setSelected(null);
+        setConfirmDel(null);
+      };
+
+      const handlePhoto = e => {
+        Array.from(e.target.files).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = ev => {
+            setForm(prev => ({...prev, photos:[...(prev.photos||[]), ev.target.result]}));
+          };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = "";
+      };
+
+      /* --- スタイル定数 --- */
+      const labelStyle = {
+        display:"block", fontSize:12, fontWeight:700,
+        color:"#4a6358", marginBottom:5, marginTop:16,
+      };
+      const inputStyle = {
+        width:"100%", padding:"11px 14px", borderRadius:10,
+        border:"1px solid #d1ddd8", background:"#fff",
+        fontSize:14, color:"#1a2e24",
+      };
+      const sectionTitle = {
+        fontSize:13, fontWeight:900, color:"#0f8a6c",
+        letterSpacing:0.5, marginTop:24, marginBottom:4,
+        paddingBottom:6, borderBottom:"2px solid #eef5f1",
+      };
+
+      return (
+        <div style={{ minHeight:"100vh", background:"linear-gradient(170deg,#f0f6f3 0%,#e8f0eb 50%,#f5f8f6 100%)", color:"#1a2e24" }}>
+
+          {/* ── HEADER ── */}
+          <div style={{
+            background:"linear-gradient(135deg,#0f8a6c 0%,#0a7159 55%,#085c48 100%)",
+            padding:"24px 20px 20px", color:"#fff",
+            position:"relative", overflow:"hidden",
+          }}>
+            <div style={{ position:"absolute", top:-40, right:-40, width:150, height:150, borderRadius:"50%", background:"rgba(255,255,255,0.06)" }}/>
+            <div style={{ position:"absolute", bottom:-20, left:50, width:80, height:80, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }}/>
+            <div style={{ fontSize:11, fontWeight:500, opacity:0.7, letterSpacing:2.5, textTransform:"uppercase", marginBottom:4 }}>Hospital Review</div>
+            <div style={{ fontSize:24, fontWeight:900, letterSpacing:-0.5 }}>病院見学ノート</div>
+            <div style={{ fontSize:12, opacity:0.65, marginTop:3 }}>見学した病院の評価を記録・比較</div>
+          </div>
+
+          {/* ── NAV ── */}
+          <nav className="no-print" style={{ display:"flex", background:"#fff", borderBottom:"1px solid #e4ece8", position:"sticky", top:0, zIndex:50 }}>
+            {[
+              { key:"list", label:"📋 一覧", count: hospitals.length,
+                countVisited: hospitals.filter(h=>h.status!=="interested").length,
+                countInterested: hospitals.filter(h=>h.status==="interested").length },
+              { key:"form",     label:"✏️ 記録" },
+              { key:"compare",  label:"📊 比較" },
+              { key:"settings", label:"⚙️ 設定" },
+            ].map(tab => (
+              <button key={tab.key}
+                onClick={() => {
+                  setView(tab.key);
+                  if (tab.key==="form" && !editId) resetForm();
+                }}
+                style={{
+                  flex:1, padding:"13px 6px", border:"none", cursor:"pointer",
+                  background: view===tab.key ? "#f0f6f3" : "#fff",
+                  borderBottom: view===tab.key ? "3px solid #0f8a6c" : "3px solid transparent",
+                  color: view===tab.key ? "#0f8a6c" : "#7a9489",
+                  fontWeight: view===tab.key ? 700 : 500, fontSize:13,
+                  transition:"all .18s",
+                }}
+              >
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span style={{ fontSize:11, opacity:0.6 }}>
+                    {" "}({tab.countVisited}{tab.countInterested > 0 ? `+${tab.countInterested}👀` : ""})
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <div style={{ maxWidth:520, margin:"0 auto", padding:"14px 14px 100px" }}>
+
+            {/* ══════════ LIST VIEW ══════════ */}
+            {view==="list" && (
+              <div style={{ animation:"fadeUp .32s ease" }}>
+                {/* 検索・フィルター */}
+                <div style={{ marginBottom:14 }}>
+                  <input
+                    placeholder="🔍 病院名・診療科で検索…"
+                    value={searchQ}
+                    onChange={e => setSearchQ(e.target.value)}
+                    style={{ ...inputStyle, borderRadius:12, padding:"12px 16px", fontSize:14 }}
+                  />
+                  <div style={{ display:"flex", gap:8, marginTop:9, flexWrap:"wrap", alignItems:"center" }}>
+                    <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+                      style={{ padding:"6px 10px", borderRadius:8, border:"1px solid #d1ddd8", fontSize:12, color:"#4a6358", background:"#fff" }}
+                    >
+                      <option value="date">日付順</option>
+                      <option value="rating">評価順</option>
+                      <option value="name">名前順</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filtered.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"60px 20px", color:"#96afa5" }}>
+                    <div style={{ fontSize:52, marginBottom:12 }}>🏥</div>
+                    <div style={{ fontSize:16, fontWeight:700, marginBottom:6 }}>まだ記録がありません</div>
+                    <div style={{ fontSize:13 }}>「記録」タブから病院見学の評価を追加しましょう</div>
+                  </div>
+                ) : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    {filtered.map((h,i) => (
+                      <HospitalCard key={h.id} hospital={h} animDelay={i*0.04}
+                        weights={weights} hasCustomWeights={hasCustomWeights}
+                        onClick={() => { setSelected(h); setConfirmDel(null); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══════════ DETAIL MODAL ══════════ */}
+            {selected && (
+              <div style={{
+                position:"fixed", inset:0, background:"rgba(10,30,20,0.45)", zIndex:100,
+                display:"flex", alignItems:"flex-end", justifyContent:"center",
+                backdropFilter:"blur(4px)",
+              }} onClick={() => { setSelected(null); setConfirmDel(null); }}>
+                <div onClick={e=>e.stopPropagation()} style={{
+                  background:"#fff", borderRadius:"22px 22px 0 0",
+                  width:"100%", maxWidth:520, maxHeight:"93vh",
+                  overflowY:"auto", padding:"22px 18px 32px",
+                  animation:"fadeUp .28s ease",
+                }}>
+                  <div style={{ width:36, height:4, borderRadius:2, background:"#d1ddd8", margin:"0 auto 16px" }}/>
+
+                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:3 }}>
+                    <div style={{ fontSize:20, fontWeight:900, color:"#1a2e24" }}>{selected.name}</div>
+                    {selected.status === "interested" && (
+                      <span style={{ fontSize:11, fontWeight:700, color:"#7a9489", background:"#eef5f1", padding:"3px 9px", borderRadius:6 }}>👀 気になる</span>
+                    )}
+                    {selected.status !== "interested" && selected.visitCount && (
+                      <span style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", background:"#eef5f1", padding:"3px 9px", borderRadius:6 }}>{selected.visitCount}</span>
+                    )}
+                    {selected.status !== "interested" && selected.visitPurpose && (
+                      <span style={{ fontSize:11, fontWeight:600, color:"#7a9489", background:"#f5f8f6", padding:"3px 9px", borderRadius:6 }}>{selected.visitPurpose}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:13, color:"#7a9489", marginBottom:16 }}>
+                    {selected.department}{selected.department&&" · "}
+                    {selected.status === "interested" ? "見学日未定" : selected.date}
+                  </div>
+
+                  {/* レーダーチャート・評価グリッド（見学済みのみ） */}
+                  {selected.status !== "interested" && (
+                    <>
+                      <div style={{ display:"flex", justifyContent:"center", marginBottom:14 }}>
+                        <RadarChart ratings={selected.ratings} size={220}/>
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:16 }}>
+                        {CATEGORIES.map(c => (
+                          <div key={c.key} style={{
+                            display:"flex", justifyContent:"space-between", alignItems:"center",
+                            padding:"7px 11px", background:"#f5f8f6", borderRadius:9,
+                          }}>
+                            <span style={{ fontSize:11 }}>{c.icon} {c.label}</span>
+                            <StarRating value={selected.ratings[c.key]} readonly small/>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ marginBottom:14 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:6 }}>✅ みることチェックリスト</div>
+                        <div style={{ background:"#f5f8f6", borderRadius:10, padding:"10px 12px" }}>
+                          {CHECKLIST_ITEMS.map(item => (
+                            <div key={item.key} style={{
+                              fontSize:12, padding:"3px 0",
+                              color: (selected.checklist||{})[item.key] ? "#1a2e24" : "#b0c4bb",
+                            }}>
+                              {(selected.checklist||{})[item.key] ? "✅" : "☐"} {item.label}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+
+                  {/* 医師情報 */}
+                  {(selected.chiefDoctor||selected.thankYouDoctors||selected.salary||selected.nightShifts) && (
+                    <div style={{ background:"#f5f8f6", borderRadius:10, padding:"10px 14px", marginBottom:14 }}>
+                      {selected.chiefDoctor     && <div style={{ fontSize:13, color:"#4a6358", marginBottom:3 }}>👔 部長：{selected.chiefDoctor}</div>}
+                      {selected.thankYouDoctors && <div style={{ fontSize:13, color:"#4a6358", marginBottom:3 }}>🙏 お世話になった先生：{selected.thankYouDoctors}</div>}
+                      {selected.salary          && <div style={{ fontSize:13, color:"#4a6358", marginBottom:3 }}>💰 給与：{selected.salary}</div>}
+                      {selected.nightShifts     && <div style={{ fontSize:13, color:"#4a6358", marginBottom:3 }}>🌙 月当直回数：{selected.nightShifts}</div>}
+                      {selected.patientCount    && <div style={{ fontSize:13, color:"#4a6358", marginBottom:3 }}>🛏️ 平均受け持ち患者数：{selected.patientCount}</div>}
+                      {selected.recruitUrl      && (
+                        <div style={{ fontSize:13, marginTop:2 }}>
+                          <a href={selected.recruitUrl} target="_blank" rel="noopener noreferrer"
+                            style={{ color:"#0f8a6c", fontWeight:600, textDecoration:"none" }}
+                            onClick={e=>e.stopPropagation()}
+                          >🔗 募集要項を開く →</a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 聞いたこと */}
+                  {selected.askMemo && (
+                    <div style={{ marginBottom:12 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:4 }}>❓ 聞いたこと・回答</div>
+                      <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.7, background:"#f5f8f6", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap" }}>{selected.askMemo}</div>
+                    </div>
+                  )}
+
+                  {selected.goodPoints && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#0f8a6c", marginBottom:4 }}>👍 良かった点</div>
+                      <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.65, background:"#f0f9f5", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap" }}>{selected.goodPoints}</div>
+                    </div>
+                  )}
+
+                  {selected.badPoints && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#c4643a", marginBottom:4 }}>👎 気になった点</div>
+                      <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.65, background:"#fef6f2", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap" }}>{selected.badPoints}</div>
+                    </div>
+                  )}
+
+                  {selected.memo && (
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:4 }}>📝 メモ</div>
+                      <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.65, background:"#f5f8f6", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap" }}>{selected.memo}</div>
+                    </div>
+                  )}
+
+                  {/* マッチング対策 */}
+                  {(selected.matchSelection||selected.matchGradeWeight||selected.matchConnection||selected.matchPastExam||selected.matchInterview||selected.matchMemo) && (
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:8 }}>🎯 マッチング対策</div>
+                      <div style={{ background:"#f5f8f6", borderRadius:10, padding:"10px 14px" }}>
+                        {selected.matchSelection   && <div style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", borderBottom:"1px solid #e8f0eb", fontSize:13 }}><span style={{ color:"#7a9489" }}>選考方法</span><span style={{ fontWeight:600, color:"#1a2e24" }}>{selected.matchSelection}</span></div>}
+                        {selected.matchGradeWeight && <div style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", borderBottom:"1px solid #e8f0eb", fontSize:13 }}><span style={{ color:"#7a9489" }}>成績・CBT重視度</span><span style={{ fontWeight:600, color:"#1a2e24" }}>{selected.matchGradeWeight}</span></div>}
+                        {selected.matchConnection  && <div style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", borderBottom:"1px solid #e8f0eb", fontSize:13 }}><span style={{ color:"#7a9489" }}>コネ・顔売りの影響</span><span style={{ fontWeight:600, color:"#1a2e24" }}>{selected.matchConnection}</span></div>}
+                        {selected.matchPastExam    && <div style={{ display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:13 }}><span style={{ color:"#7a9489" }}>過去問</span><span style={{ fontWeight:600, color:"#1a2e24" }}>{selected.matchPastExam}</span></div>}
+                      </div>
+                      {selected.matchInterview && (
+                        <div style={{ marginTop:8 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:"#4a6358", marginBottom:3 }}>面接で聞かれたこと</div>
+                          <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.65, background:"#fff8f0", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap", border:"1px solid #f0e0c8" }}>{selected.matchInterview}</div>
+                        </div>
+                      )}
+                      {selected.matchMemo && (
+                        <div style={{ marginTop:8 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:"#4a6358", marginBottom:3 }}>試験対策・その他</div>
+                          <div style={{ fontSize:13, color:"#3a5a4a", lineHeight:1.65, background:"#f5f8f6", padding:"10px 14px", borderRadius:10, whiteSpace:"pre-wrap" }}>{selected.matchMemo}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 写真 */}
+                  {selected.photos && selected.photos.length > 0 && (
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:6 }}>📷 写真</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                        {selected.photos.map((p,i) => (
+                          <img key={i} src={p} alt="" style={{ width:90, height:90, objectFit:"cover", borderRadius:10, border:"1px solid #e4ece8" }}/>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 志望順位 */}
+                  {selected.status !== "interested" && (
+                    <div style={{ marginBottom:8 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:8 }}>🏆 志望順位</div>
+                      <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                          <button key={n} type="button"
+                            onClick={() => {
+                              const r = selected.rank===n ? 0 : n;
+                              const updated = {...selected, rank: r};
+                              setHospitals(prev => prev.map(h => h.id===selected.id ? updated : h));
+                              setSelected(updated);
+                            }}
+                            style={{
+                              width:36, height:36, borderRadius:9, fontSize:13, fontWeight:800, cursor:"pointer",
+                              border: selected.rank===n ? "none" : "1.5px solid #e4ece8",
+                              background: selected.rank===n
+                                ? (n===1 ? "linear-gradient(135deg,#f0c040,#e8a820)"
+                                  : n<=3 ? "linear-gradient(135deg,#0f8a6c,#12a67e)"
+                                  : "#eef5f1")
+                                : "#fff",
+                              color: selected.rank===n ? "#fff" : "#a8b8b0",
+                              transition:"all .13s",
+                            }}
+                          >{n}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 見学後アクション */}
+                  {selected.status !== "interested" && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:8 }}>✅ 見学後アクション</div>
+                      <div style={{ background:"#f5f8f6", borderRadius:10, overflow:"hidden" }}>
+                        {[
+                          { key:"thankYou", label:"📧 お礼メールを送った" },
+                          { key:"pastExam", label:"📄 過去問を入手した" },
+                          { key:"revisitBooked", label:"🔁 再訪問の予約をした" },
+                        ].map((item, i) => {
+                          const checked = (selected.actions||{})[item.key];
+                          return (
+                            <div key={item.key}
+                              onClick={() => {
+                                const updated = {...selected, actions:{...(selected.actions||{}), [item.key]:!checked}};
+                                setHospitals(prev => prev.map(h => h.id===selected.id ? updated : h));
+                                setSelected(updated);
+                              }}
+                              style={{
+                                display:"flex", alignItems:"center", gap:10, padding:"11px 14px",
+                                borderBottom: i<2 ? "1px solid #e8f0eb" : "none",
+                                cursor:"pointer", background: checked ? "#f0f9f5" : "#f5f8f6",
+                                transition:"background .12s",
+                              }}
+                            >
+                              <div style={{
+                                width:20, height:20, borderRadius:5, flexShrink:0,
+                                border: checked ? "none" : "2px solid #d1ddd8",
+                                background: checked ? "#0f8a6c" : "transparent",
+                                display:"flex", alignItems:"center", justifyContent:"center",
+                              }}>
+                                {checked && <span style={{ color:"#fff", fontSize:13, fontWeight:700 }}>✓</span>}
+                              </div>
+                              <span style={{ fontSize:13, color: checked ? "#1a2e24" : "#7a9489", fontWeight: checked ? 600 : 400 }}>{item.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ボタン */}
+                  {/* 再訪フラグ */}
+                  <div className="no-print" style={{ marginTop:14 }}>
+                    <button
+                      onClick={() => {
+                        const updated = {...selected, wantToRevisit: !selected.wantToRevisit};
+                        setHospitals(prev => prev.map(h => h.id===selected.id ? updated : h));
+                        setSelected(updated);
+                      }}
+                      style={{
+                        width:"100%", padding:"13px", borderRadius:12, fontSize:14, fontWeight:700, cursor:"pointer",
+                        border: selected.wantToRevisit ? "2px solid #0f8a6c" : "2px dashed #a8c8b8",
+                        background: selected.wantToRevisit ? "#eef5f1" : "#fff",
+                        color: selected.wantToRevisit ? "#0f8a6c" : "#7a9489",
+                        transition:"all .18s",
+                      }}
+                    >
+                      {selected.wantToRevisit ? "🔁 再訪予定あり（タップで解除）" : "🔁 もう一度行きたい"}
+                    </button>
+                  </div>
+
+                  <div className="no-print" style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
+                    <button onClick={()=>setShowEmail(true)} style={{
+                      flex:1, minWidth:90, padding:"11px 6px", borderRadius:11, border:"none",
+                      background:"#eef5f1", color:"#0f8a6c", fontWeight:700, fontSize:12, cursor:"pointer",
+                    }}>📧 お礼メール</button>
+                    <button onClick={()=>window.print()} style={{
+                      flex:1, minWidth:90, padding:"11px 6px", borderRadius:11, border:"none",
+                      background:"#eef5f1", color:"#4a6358", fontWeight:700, fontSize:12, cursor:"pointer",
+                    }}>🖨️ PDF保存</button>
+                  </div>
+                  <div className="no-print" style={{ display:"flex", gap:8, marginTop:8 }}>
+                    <button onClick={()=>startEdit(selected)} style={{
+                      flex:1, padding:"11px", borderRadius:11, border:"1px solid #0f8a6c",
+                      background:"#fff", color:"#0f8a6c", fontWeight:700, fontSize:13, cursor:"pointer",
+                    }}>編集</button>
+                    {confirmDel===selected.id ? (
+                      <button onClick={()=>deleteHospital(selected.id)} style={{
+                        flex:1, padding:"11px", borderRadius:11, border:"none",
+                        background:"#dc3545", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer",
+                      }}>本当に削除する</button>
+                    ) : (
+                      <button onClick={()=>setConfirmDel(selected.id)} style={{
+                        flex:1, padding:"11px", borderRadius:11, border:"1px solid #dc3545",
+                        background:"#fff", color:"#dc3545", fontWeight:700, fontSize:13, cursor:"pointer",
+                      }}>削除</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* お礼メールモーダル */}
+            {showEmail && selected && (
+              <EmailModal hospital={selected} onClose={()=>setShowEmail(false)}/>
+            )}
+
+            {/* ══════════ FORM VIEW ══════════ */}
+            {view==="form" && (
+              <div style={{ animation:"fadeUp .32s ease" }}>
+                <div style={{ fontSize:17, fontWeight:900, marginBottom:18, color:"#1a2e24" }}>
+                  {editId ? "📝 評価を編集" : "🏥 新しい見学記録"}
+                </div>
+
+                {/* ── ステータス切り替え ── */}
+                <div style={{ display:"flex", gap:8, marginBottom:20 }}>
+                  {[
+                    { val:"visited",    label:"🏥 見学済み" },
+                    { val:"interested", label:"👀 気になる（未見学）" },
+                  ].map(opt => (
+                    <button key={opt.val} type="button"
+                      onClick={()=>setForm({...form, status:opt.val})}
+                      style={{
+                        flex:1, padding:"11px 8px", borderRadius:12, fontSize:13, fontWeight:700,
+                        cursor:"pointer",
+                        border: form.status===opt.val ? "2px solid #0f8a6c" : "2px solid #e4ece8",
+                        background: form.status===opt.val ? "#eef5f1" : "#fff",
+                        color: form.status===opt.val ? "#0f8a6c" : "#7a9489",
+                        transition:"all .15s",
+                      }}
+                    >{opt.label}</button>
+                  ))}
+                </div>
+
+                {/* ── 基本情報 ── */}
+                <div style={sectionTitle}>📋 基本情報</div>
+
+                <label style={labelStyle}>病院名 *</label>
+                <input value={form.name}
+                  onChange={e=>setForm({...form, name:e.target.value})}
+                  placeholder="病院名を入力（候補が表示されます）"
+                  list="hospital-list"
+                  autoComplete="off"
+                  style={inputStyle}
+                />
+                <datalist id="hospital-list">
+                  {HOSPITAL_NAMES.map(n => <option key={n} value={n}/>)}
+                </datalist>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  <div>
+                    <label style={labelStyle}>{form.status==="interested" ? "見学予定日（任意）" : "見学日"}</label>
+                    <input type="date" value={form.date}
+                      onChange={e=>setForm({...form, date:e.target.value})}
+                      style={{ ...inputStyle, opacity: form.status==="interested" ? 0.6 : 1 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>診療科</label>
+                    <input value={form.department}
+                      onChange={e=>setForm({...form, department:e.target.value})}
+                      placeholder="例：内科" style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  <div>
+                    <label style={labelStyle}>何回目の見学</label>
+                    <select value={form.visitCount||"1回目"}
+                      onChange={e=>setForm({...form, visitCount:e.target.value})}
+                      style={inputStyle}
+                    >
+                      <option value="1回目">1回目</option>
+                      <option value="2回目">2回目</option>
+                      <option value="3回目">3回目</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>目的</label>
+                    <select value={form.visitPurpose||""}
+                      onChange={e=>setForm({...form, visitPurpose:e.target.value})}
+                      style={inputStyle}
+                    >
+                      <option value="">---</option>
+                      <option value="初回見学">初回見学</option>
+                      <option value="再訪問・情報収集">再訪問・情報収集</option>
+                      <option value="最終確認・顔売り">最終確認・顔売り</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label style={labelStyle}>見学した科の部長名</label>
+                <input value={form.chiefDoctor||""}
+                  onChange={e=>setForm({...form, chiefDoctor:e.target.value})}
+                  placeholder="〇〇 先生" style={inputStyle}
+                />
+
+                <label style={labelStyle}>お世話になった先生</label>
+                <input value={form.thankYouDoctors||""}
+                  onChange={e=>setForm({...form, thankYouDoctors:e.target.value})}
+                  placeholder="〇〇 先生、△△ 先生" style={inputStyle}
+                />
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  <div>
+                    <label style={labelStyle}>💰 給与（月収）</label>
+                    <input value={form.salary||""}
+                      onChange={e=>setForm({...form, salary:e.target.value})}
+                      placeholder="例：26万円" style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>🌙 月当直回数</label>
+                    <input value={form.nightShifts||""}
+                      onChange={e=>setForm({...form, nightShifts:e.target.value})}
+                      placeholder="例：8回" style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <label style={labelStyle}>🛏️ 平均受け持ち患者数</label>
+                <select value={form.patientCount||""}
+                  onChange={e=>setForm({...form, patientCount:e.target.value})}
+                  style={inputStyle}
+                >
+                  <option value="">選択してください</option>
+                  <option value="1〜5人">1〜5人</option>
+                  <option value="5〜10人">5〜10人</option>
+                  <option value="10〜20人">10〜20人</option>
+                  <option value="20人以上">20人以上</option>
+                </select>
+
+                <label style={labelStyle}>🔗 募集要項URL（任意）</label>
+                <input value={form.recruitUrl||""}
+                  onChange={e=>setForm({...form, recruitUrl:e.target.value})}
+                  placeholder="https://..." style={inputStyle}
+                  type="url"
+                />
+
+                {/* ── 評価（見学済みのみ） ── */}
+                {form.status === "visited" && <div style={{...sectionTitle, marginTop:28}}>⭐ 各項目の評価</div>}
+
+                {form.status === "visited" && (
+                  <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e4ece8", overflow:"hidden", marginTop:6 }}>
+                    {CATEGORIES.map((c,i) => (
+                      <div key={c.key} style={{
+                        display:"flex", justifyContent:"space-between", alignItems:"center",
+                        padding:"12px 16px",
+                        borderBottom: i<CATEGORIES.length-1 ? "1px solid #f0f4f2" : "none",
+                      }}>
+                        <span style={{ fontSize:13 }}>{c.icon} {c.label}</span>
+                        <StarRating value={form.ratings[c.key]}
+                          onChange={v => setForm({...form, ratings:{...form.ratings, [c.key]:v}})}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── チェックリスト（見学済みのみ） ── */}
+                {form.status === "visited" && <div style={{...sectionTitle, marginTop:28}}>✅ みることチェックリスト</div>}
+                {form.status === "visited" && (
+                  <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e4ece8", overflow:"hidden", marginTop:6 }}>
+                    {CHECKLIST_ITEMS.map((item,i) => (
+                      <div key={item.key}
+                        onClick={()=>setForm({...form, checklist:{...form.checklist, [item.key]:!form.checklist[item.key]}})}
+                        style={{
+                          display:"flex", alignItems:"center", gap:12, padding:"12px 16px",
+                          borderBottom: i<CHECKLIST_ITEMS.length-1 ? "1px solid #f0f4f2" : "none",
+                          cursor:"pointer",
+                          background: form.checklist[item.key] ? "#f0f9f5" : "#fff",
+                          transition:"background .12s",
+                        }}
+                      >
+                        <div style={{
+                          width:22, height:22, borderRadius:6, flexShrink:0,
+                          border: form.checklist[item.key] ? "none" : "2px solid #d1ddd8",
+                          background: form.checklist[item.key] ? "#0f8a6c" : "transparent",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          transition:"all .12s",
+                        }}>
+                          {form.checklist[item.key] && <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize:13, color: form.checklist[item.key] ? "#1a2e24" : "#7a9489" }}>
+                          {item.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+
+                {/* ── メモ欄 ── */}
+                <div style={{...sectionTitle, marginTop:28}}>📝 メモ</div>
+
+                {form.status === "interested" && (
+                  <>
+                    <label style={labelStyle}>💡 気になる理由・情報源</label>
+                    <textarea value={form.goodPoints}
+                      onChange={e=>setForm({...form, goodPoints:e.target.value})}
+                      placeholder={"レジナビで話を聞いて興味を持った\n先輩からおすすめされた\n救急が充実していると聞いた…"}
+                      rows={4} style={{...inputStyle, lineHeight:1.65}}
+                    />
+                  </>
+                )}
+
+                {form.status === "visited" && (
+                  <>
+                    <label style={labelStyle}>❓ 聞いたこと・回答メモ</label>
+                    <textarea value={form.askMemo||""}
+                      onChange={e=>setForm({...form, askMemo:e.target.value})}
+                      placeholder={"当直の翌日は休み？どれくらい眠れる？\n後期研修で残る2年目は多い？\nファーストタッチはできる？\n救急は何次対応？フィードバックはある？"}
+                      rows={5} style={{...inputStyle, lineHeight:1.65}}
+                    />
+
+                    <label style={labelStyle}>👍 良かった点</label>
+                    <textarea value={form.goodPoints}
+                      onChange={e=>setForm({...form, goodPoints:e.target.value})}
+                      placeholder="教育体制が整っている、指導医が丁寧、救急が充実…"
+                      rows={3} style={{...inputStyle, lineHeight:1.65}}
+                    />
+
+                    <label style={labelStyle}>👎 気になった点</label>
+                    <textarea value={form.badPoints}
+                      onChange={e=>setForm({...form, badPoints:e.target.value})}
+                      placeholder="当直が多い、アクセスが不便…"
+                      rows={3} style={{...inputStyle, lineHeight:1.65}}
+                    />
+                  </>
+                )}
+
+                <label style={labelStyle}>📝 自由メモ</label>
+                <textarea value={form.memo}
+                  onChange={e=>setForm({...form, memo:e.target.value})}
+                  placeholder="志望理由・面接で聞かれたこと・試験対策など"
+                  rows={3} style={{...inputStyle, lineHeight:1.65}}
+                />
+
+                {/* ── マッチング対策（見学済みのみ） ── */}
+                {form.status === "visited" && <>
+                  <div style={{...sectionTitle, marginTop:28}}>🎯 マッチング対策</div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <label style={labelStyle}>選考方法</label>
+                      <select value={form.matchSelection||""}
+                        onChange={e=>setForm({...form, matchSelection:e.target.value})}
+                        style={inputStyle}
+                      >
+                        <option value="">不明</option>
+                        <option value="面接のみ">面接のみ</option>
+                        <option value="面接＋筆記">面接＋筆記</option>
+                        <option value="面接＋小論文">面接＋小論文</option>
+                        <option value="面接＋実技">面接＋実技</option>
+                        <option value="書類＋面接＋筆記">書類＋面接＋筆記</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>過去問</label>
+                      <select value={form.matchPastExam||""}
+                        onChange={e=>setForm({...form, matchPastExam:e.target.value})}
+                        style={inputStyle}
+                      >
+                        <option value="">不明</option>
+                        <option value="当日配布">当日配布</option>
+                        <option value="USB持参">USB持参</option>
+                        <option value="事前入手可">事前入手可</option>
+                        <option value="なし">なし</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <label style={labelStyle}>成績・CBTの重視度</label>
+                      <select value={form.matchGradeWeight||""}
+                        onChange={e=>setForm({...form, matchGradeWeight:e.target.value})}
+                        style={inputStyle}
+                      >
+                        <option value="">不明</option>
+                        <option value="かなり重視">かなり重視</option>
+                        <option value="ある程度重視">ある程度重視</option>
+                        <option value="あまり関係ない">あまり関係ない</option>
+                        <option value="関係ない">関係ない</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>コネ・顔売りの影響</label>
+                      <select value={form.matchConnection||""}
+                        onChange={e=>setForm({...form, matchConnection:e.target.value})}
+                        style={inputStyle}
+                      >
+                        <option value="">不明</option>
+                        <option value="ほぼなし">ほぼなし</option>
+                        <option value="多少ある">多少ある</option>
+                        <option value="かなりある">かなりある</option>
+                        <option value="ほぼコネで決まる">ほぼコネで決まる</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <label style={labelStyle}>面接で聞かれたこと</label>
+                  <textarea value={form.matchInterview||""}
+                    onChange={e=>setForm({...form, matchInterview:e.target.value})}
+                    placeholder={"志望理由・自己PR・将来の専門科は？\n学生時代に頑張ったこと\n当院を選んだ理由…"}
+                    rows={4} style={{...inputStyle, lineHeight:1.65}}
+                  />
+
+                  <label style={labelStyle}>試験対策・その他メモ</label>
+                  <textarea value={form.matchMemo||""}
+                    onChange={e=>setForm({...form, matchMemo:e.target.value})}
+                    placeholder={"筆記は国試レベル・CBT形式\n見学回数が合否に影響する\nこの病院は〇〇大学の出身者が多い…"}
+                    rows={3} style={{...inputStyle, lineHeight:1.65}}
+                  />
+                </>}
+
+                {/* ── 写真 ── */}
+                <div style={{...sectionTitle, marginTop:28}}>📷 写真</div>
+                <label style={{
+                  display:"block", padding:"16px", borderRadius:12,
+                  border:"2px dashed #c8d8d0", textAlign:"center",
+                  cursor:"pointer", color:"#7a9489", fontSize:13, marginTop:8,
+                  background:"#fafcfb",
+                }}>
+                  📷 タップして写真を追加
+                  <input type="file" accept="image/*" multiple onChange={handlePhoto} style={{ display:"none" }}/>
+                </label>
+                {(form.photos||[]).length > 0 && (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:10 }}>
+                    {form.photos.map((p,i) => (
+                      <div key={i} style={{ position:"relative" }}>
+                        <img src={p} alt="" style={{ width:80, height:80, objectFit:"cover", borderRadius:9, border:"1px solid #e4ece8" }}/>
+                        <button
+                          onClick={()=>setForm({...form, photos:form.photos.filter((_,j)=>j!==i)})}
+                          style={{
+                            position:"absolute", top:-7, right:-7, width:22, height:22,
+                            borderRadius:"50%", border:"none", background:"#dc3545",
+                            color:"#fff", fontSize:12, cursor:"pointer",
+                            display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700,
+                          }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 保存ボタン */}
+                <button onClick={saveHospital} disabled={!form.name.trim()}
+                  style={{
+                    width:"100%", padding:"15px", borderRadius:14, border:"none", marginTop:28,
+                    background: form.name.trim() ? "linear-gradient(135deg,#0f8a6c,#12a67e)" : "#c8d8d0",
+                    color:"#fff", fontSize:16, fontWeight:800,
+                    cursor: form.name.trim() ? "pointer" : "default",
+                    transition:"all .2s",
+                    boxShadow: form.name.trim() ? "0 4px 18px rgba(15,138,108,0.3)" : "none",
+                  }}
+                >{editId ? "更新する" : "記録を保存"}</button>
+
+                {editId && (
+                  <button onClick={resetForm} style={{
+                    width:"100%", padding:"13px", borderRadius:14,
+                    border:"1px solid #d1ddd8", background:"#fff",
+                    color:"#7a9489", fontSize:14, fontWeight:600,
+                    cursor:"pointer", marginTop:8,
+                  }}>キャンセル</button>
+                )}
+              </div>
+            )}
+
+            {/* ══════════ COMPARE VIEW ══════════ */}
+            {view==="compare" && (
+              <div style={{ animation:"fadeUp .32s ease" }}>
+                {hospitals.filter(h=>h.status!=="interested").length >= 2 && (
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#4a6358", marginBottom:8 }}>比較する病院を選択（未選択=全て）</div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                      {hospitals.filter(h=>h.status!=="interested").map(h => {
+                        const checked = compareSelected.includes(h.id);
+                        return (
+                          <div key={h.id}
+                            onClick={()=>setCompareSelected(prev => prev.includes(h.id) ? prev.filter(id=>id!==h.id) : [...prev, h.id])}
+                            style={{
+                              display:"flex", alignItems:"center", gap:10, padding:"9px 12px",
+                              background: checked ? "#eef5f1" : "#fff", borderRadius:10,
+                              border: checked ? "1.5px solid #0f8a6c" : "1.5px solid #e4ece8",
+                              cursor:"pointer", transition:"all .13s",
+                            }}
+                          >
+                            <div style={{
+                              width:20, height:20, borderRadius:5, flexShrink:0,
+                              border: checked ? "none" : "2px solid #d1ddd8",
+                              background: checked ? "#0f8a6c" : "transparent",
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                            }}>
+                              {checked && <span style={{ color:"#fff", fontSize:12, fontWeight:700 }}>✓</span>}
+                            </div>
+                            <span style={{ fontSize:13, fontWeight: checked ? 700 : 400, color: checked ? "#0f8a6c" : "#4a6358" }}>{h.name}</span>
+                            {h.rank > 0 && <span style={{ fontSize:11, color:"#7a9489", marginLeft:"auto" }}>第{h.rank}志望</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {hospitals.length < 2 ? (
+                  <div style={{ textAlign:"center", padding:"60px 20px", color:"#96afa5" }}>
+                    <div style={{ fontSize:52, marginBottom:12 }}>📊</div>
+                    <div style={{ fontSize:16, fontWeight:700, marginBottom:6 }}>比較するには2件以上の記録が必要です</div>
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const compareHospitals = compareSelected.length >= 2
+                        ? hospitals.filter(h => compareSelected.includes(h.id))
+                        : hospitals.filter(h => h.status !== "interested");
+                      return (
+                        <>
+                    <div style={{ fontSize:18, fontWeight:900, marginBottom:18 }}>病院比較</div>
+
+                    {CATEGORIES.map(cat => (
+                      <div key={cat.key} style={{ marginBottom:18 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:"#4a6358", marginBottom:8 }}>{cat.icon} {cat.label}</div>
+                        {[...compareHospitals]
+                          .sort((a,b) => (b.ratings[cat.key]||0) - (a.ratings[cat.key]||0))
+                          .map(h => {
+                            const val = h.ratings[cat.key]||0;
+                            return (
+                              <div key={h.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:5 }}>
+                                <div style={{ fontSize:11, width:90, color:"#4a6358", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flexShrink:0 }}>{h.name}</div>
+                                <div style={{ flex:1, height:22, background:"#eef5f1", borderRadius:6, overflow:"hidden" }}>
+                                  <div style={{
+                                    width:`${(val/5)*100}%`, height:"100%",
+                                    background: val>=4 ? "linear-gradient(90deg,#0f8a6c,#12a67e)" : val>=3 ? "linear-gradient(90deg,#2d9e80,#52b89a)" : "linear-gradient(90deg,#96afa5,#b0c4bb)",
+                                    borderRadius:6, transition:"width .5s ease",
+                                    display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:7,
+                                  }}>
+                                    {val > 0 && <span style={{ fontSize:11, fontWeight:700, color:"#fff" }}>{val}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    ))}
+
+                    {/* 総合ランキング */}
+                    <div style={{ marginTop:24, background:"#fff", borderRadius:16, border:"1px solid #e4ece8", padding:20 }}>
+                      <div style={{ fontSize:15, fontWeight:900, color:"#1a2e24", marginBottom:12 }}>🏆 総合ランキング</div>
+                      {[...compareHospitals]
+                        .sort((a,b) => avgRating(b) - avgRating(a))
+                        .map((h,i) => (
+                          <div key={h.id} style={{
+                            display:"flex", alignItems:"center", gap:12, padding:"10px 0",
+                            borderBottom: i<compareHospitals.length-1 ? "1px solid #f0f4f2" : "none",
+                          }}>
+                            <div style={{
+                              width:28, height:28, borderRadius:8,
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              fontSize:13, fontWeight:800,
+                              background: i===0 ? "linear-gradient(135deg,#f0c040,#e8a820)"
+                                        : i===1 ? "linear-gradient(135deg,#c0c8d0,#a0a8b0)"
+                                        : i===2 ? "linear-gradient(135deg,#d4a070,#c08850)"
+                                        : "#f0f4f2",
+                              color: i<3 ? "#fff" : "#7a9489",
+                            }}>{i+1}</div>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:14, fontWeight:700 }}>{h.name}</div>
+                              <div style={{ fontSize:12, color:"#7a9489" }}>{h.department}</div>
+                            </div>
+                            <div style={{ fontSize:18, fontWeight:900, color:"#0f8a6c" }}>{avgRating(h).toFixed(1)}</div>
+                          </div>
+                        ))}
+                    </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ===== 設定タブ ===== */}
+            {view === "settings" && (
+              <div style={{ animation:"fadeUp .32s ease" }}>
+                {/* セクション切り替え */}
+                <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+                  {[
+                    { key:"weights",   label:"⚖️ 重み" },
+                    { key:"data",      label:"💾 データ" },
+                    { key:"checklist", label:"📋 持ち物" },
+                  ].map(s => (
+                    <button key={s.key} type="button"
+                      onClick={()=>setSettingsSection(s.key)}
+                      style={{
+                        flex:1, padding:"9px 4px", borderRadius:10, fontSize:12, fontWeight:700,
+                        cursor:"pointer",
+                        border: settingsSection===s.key ? "2px solid #0f8a6c" : "2px solid #e4ece8",
+                        background: settingsSection===s.key ? "#eef5f1" : "#fff",
+                        color: settingsSection===s.key ? "#0f8a6c" : "#7a9489",
+                      }}
+                    >{s.label}</button>
+                  ))}
+                </div>
+
+                {/* 重み設定 */}
+                {settingsSection === "weights" && (
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:900, color:"#1a2e24", marginBottom:4 }}>⚖️ 評価の重み設定</div>
+                    <div style={{ fontSize:12, color:"#7a9489", marginBottom:16 }}>大切な項目の重みを上げると総合スコアに反映されます</div>
+                    {!CATEGORIES.every(c => weights[c.key] === 2) && (
+                      <button onClick={()=>setWeights({...DEFAULT_WEIGHTS})}
+                        style={{ fontSize:12, color:"#7a9489", background:"none", border:"1px solid #d1ddd8", borderRadius:7, padding:"5px 12px", cursor:"pointer", marginBottom:12 }}
+                      >すべてリセット</button>
+                    )}
+                    {CATEGORIES.map(c => (
+                      <div key={c.key} style={{ marginBottom:16 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
+                          <span style={{ fontSize:13, fontWeight:600 }}>{c.icon} {c.label}</span>
+                          <span style={{ fontSize:11, fontWeight:700, padding:"2px 9px", borderRadius:5,
+                            background: WEIGHT_COLORS[weights[c.key]]+"22", color: WEIGHT_COLORS[weights[c.key]] }}>
+                            {WEIGHT_LABELS[weights[c.key]]}
+                          </span>
+                        </div>
+                        <div style={{ display:"flex", gap:5 }}>
+                          {WEIGHT_LABELS.map((label, i) => (
+                            <button key={i} type="button" onClick={()=>setWeights({...weights, [c.key]: i})}
+                              style={{
+                                flex:1, padding:"7px 2px", borderRadius:7, fontSize:10, fontWeight:700, cursor:"pointer",
+                                border: weights[c.key]===i ? `2px solid ${WEIGHT_COLORS[i]}` : "2px solid #e4ece8",
+                                background: weights[c.key]===i ? WEIGHT_COLORS[i]+"22" : "#fff",
+                                color: weights[c.key]===i ? WEIGHT_COLORS[i] : "#a8b8b0",
+                                transition:"all .12s",
+                              }}
+                            >{label}</button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* データ管理 */}
+                {settingsSection === "data" && (
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:900, color:"#1a2e24", marginBottom:4 }}>💾 データ管理</div>
+                    <div style={{ fontSize:12, color:"#7a9489", marginBottom:20 }}>機種変更・バックアップ・友達との共有に使えます</div>
+
+                    <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e4ece8", padding:20, marginBottom:12 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:"#1a2e24", marginBottom:4 }}>📤 エクスポート</div>
+                      <div style={{ fontSize:12, color:"#7a9489", marginBottom:12 }}>全記録をJSONファイルで保存します（{hospitals.length}件）</div>
+                      <button onClick={exportData}
+                        style={{ width:"100%", padding:"12px", borderRadius:11, border:"none",
+                          background:"linear-gradient(135deg,#0f8a6c,#12a67e)", color:"#fff",
+                          fontWeight:700, fontSize:14, cursor:"pointer" }}
+                      >ファイルに書き出す</button>
+                    </div>
+
+                    <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e4ece8", padding:20 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:"#1a2e24", marginBottom:4 }}>📥 インポート</div>
+                      <div style={{ fontSize:12, color:"#7a9489", marginBottom:12 }}>エクスポートしたJSONファイルを読み込みます（重複は自動スキップ）</div>
+                      <label style={{ display:"block", padding:"12px", borderRadius:11, border:"2px dashed #c8d8d0",
+                        textAlign:"center", cursor:"pointer", color:"#7a9489", fontSize:13, background:"#fafcfb" }}>
+                        📂 ファイルを選択
+                        <input type="file" accept=".json" onChange={importData} style={{ display:"none" }}/>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* 見学前持ち物チェックリスト */}
+                {settingsSection === "checklist" && (
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:900, color:"#1a2e24", marginBottom:4 }}>📋 見学前 持ち物チェックリスト</div>
+                    <div style={{ fontSize:12, color:"#7a9489", marginBottom:16 }}>見学当日の準備に使ってください（毎回リセットされます）</div>
+                    <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e4ece8", overflow:"hidden" }}>
+                      {[
+                        "💳 財布（ホテル代含む）","📱 携帯・充電器","👔 着替え・下着",
+                        "⏰ 目覚まし時計","🪪 身分証明書・学生証","🧴 洗顔グッズ",
+                        "🧥 白衣","🩺 聴診器","🖊️ 筆記用具・メモ帳",
+                        "💾 USB（過去問用）","⌚ 腕時計","🏷️ ネームプレート",
+                        "👗 着圧ソックス","🎒 セカンドバッグ","📱 iPad・タブレット",
+                      ].map((item, i, arr) => {
+                        const checked = !!packingChecks[i];
+                        return (
+                          <div key={i}
+                            onClick={()=>setPackingChecks(prev=>({...prev, [i]:!prev[i]}))}
+                            style={{
+                              display:"flex", alignItems:"center", gap:12, padding:"12px 16px",
+                              borderBottom: i<arr.length-1 ? "1px solid #f0f4f2" : "none",
+                              cursor:"pointer", background: checked ? "#f0f9f5" : "#fff",
+                              transition:"background .12s",
+                            }}
+                          >
+                            <div style={{
+                              width:22, height:22, borderRadius:6, flexShrink:0,
+                              border: checked ? "none" : "2px solid #d1ddd8",
+                              background: checked ? "#0f8a6c" : "transparent",
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                            }}>
+                              {checked && <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>✓</span>}
+                            </div>
+                            <span style={{ fontSize:13, color: checked ? "#1a2e24" : "#7a9489" }}>{item}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize:11, color:"#a8b8b0", textAlign:"center", marginTop:10 }}>
+                      ※ このチェックは保存されません（毎回リセット）
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
