@@ -17,8 +17,9 @@
     body { font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif; background: #f0f6f3; }
     input, textarea, select, button { font-family: inherit; }
     textarea { resize: vertical; }
-    input[type="date"] { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; }
+    input[type="date"] { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; -webkit-appearance: none; appearance: none; }
     body { overflow-x: hidden; }
+    * { box-sizing: border-box; }
       input[type="date"] { width: 100%; box-sizing: border-box; display: block; min-width: 0; }
       body { overflow-x: hidden; }
     ::selection { background: #0f8a6c33; }
@@ -1159,11 +1160,11 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                 </datalist>
 
                 <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:10 }}>
-                  <div style={{ overflow:"hidden", width:"100%" }}>
+                  <div>
                     <label style={labelStyle}>{form.status==="interested" ? "見学予定日（任意）" : "見学日"}</label>
                     <input type="date" value={form.date}
                       onChange={e=>setForm({...form, date:e.target.value})}
-                      style={{ ...inputStyle, opacity: form.status==="interested" ? 0.6 : 1, maxWidth:"100%" }}
+                      style={{ ...inputStyle, opacity: form.status==="interested" ? 0.6 : 1 }}
                     />
                   </div>
                   <div>
