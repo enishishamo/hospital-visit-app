@@ -574,26 +574,26 @@
     }
 
     /* ===== RadarChart ===== */
-    function RadarChart({ ratings, size = 220 }) {
+    function RadarChart({ ratings, size = 220, categories = CATEGORIES }) {
       const cx = size/2, cy = size/2, r = size * 0.33;
-      const n = CATEGORIES.length;
+      const n = categories.length;
       const angle = i => Math.PI*2*i/n - Math.PI/2;
       const pt = (i, val) => ({
         x: cx + r*(val/5)*Math.cos(angle(i)),
         y: cy + r*(val/5)*Math.sin(angle(i)),
       });
-      const values     = CATEGORIES.map(c => ratings[c.key] || 0);
+      const values     = categories.map(c => ratings[c.key] || 0);
       const dataPoints = values.map((v,i) => pt(i,v));
       return (
         <svg viewBox={`0 0 ${size} ${size}`} style={{ width:"100%", maxWidth: size }}>
           {[1,2,3,4,5].map(lv => (
             <polygon key={lv}
-              points={CATEGORIES.map((_,i) => { const p=pt(i,lv); return `${p.x},${p.y}`; }).join(" ")}
+              points={categories.map((_,i) => { const p=pt(i,lv); return `${p.x},${p.y}`; }).join(" ")}
               fill="none" stroke="#d1ddd8"
               strokeWidth={lv===5 ? 1.5 : 0.5} opacity={0.7}
             />
           ))}
-          {CATEGORIES.map((_,i) => {
+          {categories.map((_,i) => {
             const p = pt(i,5);
             return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#d1ddd8" strokeWidth={0.5}/>;
           })}
@@ -602,7 +602,7 @@
             fill="rgba(15,138,108,0.18)" stroke="#0f8a6c" strokeWidth={2}
           />
           {dataPoints.map((p,i) => <circle key={i} cx={p.x} cy={p.y} r={3} fill="#0f8a6c"/>)}
-          {CATEGORIES.map((c,i) => {
+          {categories.map((c,i) => {
             const lr = r + 26;
             return (
               <text key={i}
@@ -917,10 +917,9 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
       }, [hospitals]);
 
       const avgRating = h => {
-        const cats = [...CATEGORIES, ...(h._customCategories||[])];
-        const totalWeight = cats.reduce((s,c) => s + (weights[c.key] > 0 ? (weights[c.key]||2) : 0), 0);
+        const totalWeight = allCategories.reduce((s,c) => { const w=weights[c.key]??2; return s+(w>0?w:0); }, 0);
         if (totalWeight === 0) return 0;
-        const weighted = cats.reduce((s,c) => s + (h.ratings[c.key]||0) * ((weights[c.key]||2)>0?(weights[c.key]||2):0), 0);
+        const weighted = allCategories.reduce((s,c) => { const w=weights[c.key]??2; return s+(h.ratings[c.key]||0)*(w>0?w:0); }, 0);
         return weighted / totalWeight;
       };
 
@@ -1160,7 +1159,7 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                   {selected.status !== "interested" && (
                     <>
                       <div style={{ display:"flex", justifyContent:"center", marginBottom:14 }}>
-                        <RadarChart ratings={selected.ratings} size={220}/>
+                        <RadarChart ratings={selected.ratings} size={220} categories={allCategories}/>
                       </div>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:16 }}>
                         {allCategories.map(c => (
@@ -2019,18 +2018,22 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                   <div>
                     <div style={{ fontSize:15, fontWeight:900, color:"#1a2e24", marginBottom:4 }}>⚖️ 評価の重み設定</div>
                     <div style={{ fontSize:12, color:"#7a9489", marginBottom:16 }}>大切な項目の重みを上げると総合スコアに反映されます</div>
-                    {!CATEGORIES.every(c => weights[c.key] === 2) && (
-                      <button onClick={()=>setWeights({...DEFAULT_WEIGHTS})}
+                    {!allCategories.every(c => (weights[c.key]??2) === 2) && (
+                      <button onClick={()=>{
+                        const reset = {...DEFAULT_WEIGHTS};
+                        customCategories.forEach(c => { reset[c.key] = 2; });
+                        setWeights(reset);
+                      }}
                         style={{ fontSize:12, color:"#7a9489", background:"none", border:"1px solid #d1ddd8", borderRadius:7, padding:"5px 12px", cursor:"pointer", marginBottom:12 }}
                       >すべてリセット</button>
                     )}
-                    {CATEGORIES.map(c => (
+                    {allCategories.map(c => (
                       <div key={c.key} style={{ marginBottom:16 }}>
                         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
                           <span style={{ fontSize:13, fontWeight:600 }}>{c.icon} {c.label}</span>
                           <span style={{ fontSize:11, fontWeight:700, padding:"2px 9px", borderRadius:5,
-                            background: WEIGHT_COLORS[weights[c.key]]+"22", color: WEIGHT_COLORS[weights[c.key]] }}>
-                            {WEIGHT_LABELS[weights[c.key]]}
+                            background: WEIGHT_COLORS[weights[c.key]??2]+"22", color: WEIGHT_COLORS[weights[c.key]??2] }}>
+                            {WEIGHT_LABELS[weights[c.key]??2]}
                           </span>
                         </div>
                         <div style={{ display:"flex", gap:5 }}>
@@ -2038,9 +2041,9 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                             <button key={i} type="button" onClick={()=>setWeights({...weights, [c.key]: i})}
                               style={{
                                 flex:1, padding:"7px 2px", borderRadius:7, fontSize:10, fontWeight:700, cursor:"pointer",
-                                border: weights[c.key]===i ? `2px solid ${WEIGHT_COLORS[i]}` : "2px solid #e4ece8",
-                                background: weights[c.key]===i ? WEIGHT_COLORS[i]+"22" : "#fff",
-                                color: weights[c.key]===i ? WEIGHT_COLORS[i] : "#a8b8b0",
+                                border: (weights[c.key]??2)===i ? `2px solid ${WEIGHT_COLORS[i]}` : "2px solid #e4ece8",
+                                background: (weights[c.key]??2)===i ? WEIGHT_COLORS[i]+"22" : "#fff",
+                                color: (weights[c.key]??2)===i ? WEIGHT_COLORS[i] : "#a8b8b0",
                                 transition:"all .12s",
                               }}
                             >{label}</button>
@@ -2107,6 +2110,7 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                         if(!label) return;
                         const key = "custom_" + Date.now();
                         setCustomCategories(prev=>[...prev, {key, label, icon}]);
+                        setWeights(prev=>({...prev, [key]: 2}));
                         document.getElementById("newCatIcon").value="";
                         document.getElementById("newCatLabel").value="";
                       }} style={{ padding:"9px 14px", borderRadius:9, border:"none", background:"#0f8a6c", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>追加</button>
