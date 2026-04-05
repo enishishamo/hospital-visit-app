@@ -573,6 +573,94 @@
       );
     }
 
+    /* ===== CustomDatePicker ===== */
+    function CustomDatePicker({ value, onChange }) {
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0,10);
+      const [open, setOpen] = useState(false);
+      const [vy, setVy] = useState(() => value ? parseInt(value.slice(0,4)) : today.getFullYear());
+      const [vm, setVm] = useState(() => value ? parseInt(value.slice(5,7))-1 : today.getMonth());
+      React.useEffect(() => {
+        if(value) { setVy(parseInt(value.slice(0,4))); setVm(parseInt(value.slice(5,7))-1); }
+      }, [value]);
+      const daysInMonth = new Date(vy, vm+1, 0).getDate();
+      const firstDay = new Date(vy, vm, 1).getDay();
+      const monthStr = `${vy}-${String(vm+1).padStart(2,'0')}`;
+      const prevM = () => { if(vm===0){setVm(11);setVy(vy-1);}else{setVm(vm-1);} };
+      const nextM = () => { if(vm===11){setVm(0);setVy(vy+1);}else{setVm(vm+1);} };
+      const displayVal = () => {
+        if(!value) return null;
+        if(value.length===7) return `${parseInt(value.slice(0,4))}年${parseInt(value.slice(5,7))}月`;
+        if(value.length===10) return `${parseInt(value.slice(0,4))}年${parseInt(value.slice(5,7))}月${parseInt(value.slice(8,10))}日`;
+        return value;
+      };
+      return (
+        <div style={{ position:"relative" }}>
+          <div onClick={()=>setOpen(o=>!o)} style={{
+            padding:"9px 12px", borderRadius:9,
+            border:`1px solid ${open?"#0f8a6c":"#d1ddd8"}`,
+            fontSize:13, background:"#fff", cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            color: value ? "#1a2e24" : "#a8b8b0",
+          }}>
+            <span>{displayVal() || "日付を選択（省略可）"}</span>
+            <span style={{fontSize:15}}>📅</span>
+          </div>
+          {open && <>
+            <div onClick={()=>setOpen(false)} style={{ position:"fixed", inset:0, zIndex:99 }}/>
+            <div style={{
+              position:"absolute", top:"calc(100% + 6px)", left:0, right:0, zIndex:100,
+              background:"#fff", borderRadius:14, border:"1px solid #e4ece8",
+              boxShadow:"0 8px 32px rgba(0,0,0,0.18)", padding:14,
+            }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                <button type="button" onClick={prevM}
+                  style={{ background:"none", border:"none", fontSize:24, cursor:"pointer", color:"#0f8a6c", padding:"2px 8px", lineHeight:1 }}>‹</button>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:15, fontWeight:800, color:"#1a2e24" }}>{vy}年{vm+1}月</div>
+                  <button type="button" onClick={()=>{onChange(monthStr);setOpen(false);}}
+                    style={{ marginTop:5, fontSize:11, color:"#fff", background:"#0f8a6c", border:"none", borderRadius:6, padding:"4px 14px", cursor:"pointer", fontWeight:700 }}>
+                    月のみで確定
+                  </button>
+                </div>
+                <button type="button" onClick={nextM}
+                  style={{ background:"none", border:"none", fontSize:24, cursor:"pointer", color:"#0f8a6c", padding:"2px 8px", lineHeight:1 }}>›</button>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", textAlign:"center", gap:2, marginBottom:4 }}>
+                {["日","月","火","水","木","金","土"].map((d,i)=>(
+                  <div key={i} style={{ fontSize:11, fontWeight:700, padding:"2px 0",
+                    color: i===0?"#e57373":i===6?"#5b8fe8":"#96afa5" }}>{d}</div>
+                ))}
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
+                {Array.from({length:firstDay}).map((_,i)=><div key={"e"+i}/>)}
+                {Array.from({length:daysInMonth}).map((_,i)=>{
+                  const d=i+1;
+                  const ds=`${monthStr}-${String(d).padStart(2,'0')}`;
+                  const sel=value===ds;
+                  const tod=ds===todayStr;
+                  const col=(firstDay+i)%7;
+                  return (
+                    <button key={d} type="button" onClick={()=>{onChange(ds);setOpen(false);}}
+                      style={{
+                        padding:"7px 2px", borderRadius:8, border:"none", cursor:"pointer",
+                        fontSize:13, fontWeight:sel||tod?800:400,
+                        background:sel?"#0f8a6c":tod?"#eef5f1":"transparent",
+                        color:sel?"#fff":col===0?"#e57373":col===6?"#5b8fe8":"#1a2e24",
+                      }}>{d}</button>
+                  );
+                })}
+              </div>
+              <div style={{ textAlign:"right", marginTop:10, borderTop:"1px solid #f0f4f2", paddingTop:8 }}>
+                <button type="button" onClick={()=>{onChange("");setOpen(false);}}
+                  style={{ fontSize:12, color:"#a8b8b0", background:"none", border:"none", cursor:"pointer" }}>クリア</button>
+              </div>
+            </div>
+          </>}
+        </div>
+      );
+    }
+
     /* ===== RadarChart ===== */
     function RadarChart({ ratings, size = 220, categories = CATEGORIES }) {
       const cx = size/2, cy = size/2, r = size * 0.33;
@@ -870,7 +958,7 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
       const [showEmail, setShowEmail]   = useState(false);
       const [showWeights, setShowWeights] = useState(false);
       const [settingsSection, setSettingsSection] = useState("weights"); // "weights"|"data"|"checklist"
-      const [evDateMode, setEvDateMode] = useState("date"); // "date"|"month"|"none"
+      const [evDateValue, setEvDateValue] = useState("");
       const [compareSelected, setCompareSelected] = useState([]);
       const [scheduleEvents, setScheduleEvents] = useState(() => {
         try { return JSON.parse(localStorage.getItem("scheduleEvents") || "[]"); }
@@ -1905,24 +1993,13 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                       </select>
                     </div>
                     <div>
-                      <label style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", display:"block", marginBottom:4 }}>日付</label>
-                      <div style={{ display:"flex", gap:4, marginBottom:6 }}>
-                        {[["date","📅 日付"],["month","📅 月のみ"],["none","未定"]].map(([mode,label])=>(
-                          <button key={mode} type="button" onClick={()=>setEvDateMode(mode)}
-                            style={{ flex:1, padding:"6px 2px", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer",
-                              border: evDateMode===mode ? "2px solid #0f8a6c" : "2px solid #e4ece8",
-                              background: evDateMode===mode ? "#eef5f1" : "#fff",
-                              color: evDateMode===mode ? "#0f8a6c" : "#a8b8b0" }}
-                          >{label}</button>
-                        ))}
-                      </div>
-                      {evDateMode==="date"  && <input id="evDate"      type="date"  style={{ width:"100%", padding:"9px 8px", borderRadius:9, border:"1px solid #d1ddd8", fontSize:13, boxSizing:"border-box" }}/>}
-                      {evDateMode==="month" && <input id="evDateMonth" type="month" style={{ width:"100%", padding:"9px 8px", borderRadius:9, border:"1px solid #d1ddd8", fontSize:13, boxSizing:"border-box" }}/>}
+                      <label style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", display:"block", marginBottom:4 }}>病院名・内容</label>
+                      <input id="evTitle" type="text" placeholder="例：聖路加国際病院 レジナビ" style={{ width:"100%", padding:"9px 10px", borderRadius:9, border:"1px solid #d1ddd8", fontSize:13 }}/>
                     </div>
                   </div>
                   <div style={{ marginBottom:8 }}>
-                    <label style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", display:"block", marginBottom:4 }}>病院名・内容</label>
-                    <input id="evTitle" type="text" placeholder="例：聖路加国際病院 レジナビ" style={{ width:"100%", padding:"9px 10px", borderRadius:9, border:"1px solid #d1ddd8", fontSize:13 }}/>
+                    <label style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", display:"block", marginBottom:4 }}>日付（省略可）</label>
+                    <CustomDatePicker value={evDateValue} onChange={setEvDateValue}/>
                   </div>
                   <div style={{ marginBottom:10 }}>
                     <label style={{ fontSize:11, fontWeight:700, color:"#0f8a6c", display:"block", marginBottom:4 }}>メモ（任意）</label>
@@ -1930,15 +2007,12 @@ TEL : 〇〇〇-〇〇〇〇-〇〇〇〇
                   </div>
                   <button onClick={()=>{
                     const type = document.getElementById("evType").value;
-                    const date = evDateMode==="date"  ? (document.getElementById("evDate")?document.getElementById("evDate").value:"")
-                               : evDateMode==="month" ? (document.getElementById("evDateMonth")?document.getElementById("evDateMonth").value:"")
-                               : "";
+                    const date = evDateValue;
                     const title = document.getElementById("evTitle").value.trim();
                     const note = document.getElementById("evNote").value.trim();
                     if(!title) return;
                     setScheduleEvents(prev=>[...prev, {id:Date.now().toString(), type, date, title, note}].sort((a,b)=>a.date.localeCompare(b.date)));
-                    if(document.getElementById("evDate"))      document.getElementById("evDate").value="";
-                    if(document.getElementById("evDateMonth")) document.getElementById("evDateMonth").value="";
+                    setEvDateValue("");
                     document.getElementById("evTitle").value="";
                     document.getElementById("evNote").value="";
                   }} style={{ width:"100%", padding:"11px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#0f8a6c,#12a67e)", color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer" }}>
